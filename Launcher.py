@@ -2,6 +2,8 @@ import requests
 from Utils import *
 s = requests.session()
 
+rememberMe = True
+
 loginerrors = {
     'token': 'Internal error! Please try again.',
     'username': 'Invalid username!',
@@ -17,6 +19,14 @@ def post(uri, data=''):
     return(r.json())
 
 def login():
+    if rememberMe:
+        try:
+            with open("session.dat", "r") as f:
+                test = s.get('https://www.classicube.net/api/login', cookies={"session": f.read()}).json()
+                if test["authenticated"]:
+                    return test["username"]
+        except:
+            pass
     print("\nClassiCube Login\n")
     print("Username: ")
     print("Password: ")
@@ -32,8 +42,11 @@ def login():
         sprint(Status.ERROR, message)
         exit()
     username = reallogin['username']
-    password = ''
-    return username 
+    if rememberMe:
+        with open("session.dat", "w") as f:
+            # TODO: ENCRYPTION
+            f.write([c for c in s.cookies if c.name == "session"][0].value)
+    return username
 
 def serverlist():
     servers = get('https://www.classicube.net/api/servers')
@@ -51,15 +64,20 @@ def serverlist():
     sList = sList[::-1]
     for s in sList:
         sprint(s[0], s[1])
+    sprint("0", "Logout")
     sprint(Status.INFO, 'Select the server number you want to join!')
     sel = input('> ')
     if not sel.isdigit():
         sprint(Status.ERROR, sel + ' is not a valid number!')
         return serverlist()
     sel = int(sel)
-    if sel < 1 or sel > len(servers):
+    if sel < 0 or sel > len(servers):
         sprint(Status.ERROR, 'Server number ' + str(sel) + ' does not exist!')
         return serverlist()
     sel -= 1
+    if sel == -1:
+        open("session.dat", "w").close()
+        sprint(Status.INFO, "Logged out.")
+        exit(0)
     server = servers[sel]
     return server
