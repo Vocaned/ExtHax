@@ -1,5 +1,6 @@
 import requests
 from Utils import *
+import base64
 s = requests.session()
 
 rememberMe = True
@@ -22,7 +23,8 @@ def login():
     if rememberMe:
         try:
             with open("session.dat", "r") as f:
-                test = s.get('https://www.classicube.net/api/login', cookies={"session": f.read()}).json()
+                
+                test = s.get('https://www.classicube.net/api/login', cookies={"session": base64.b85decode(f.read().encode()).decode()}).json()
                 if test["authenticated"]:
                     return test["username"]
         except:
@@ -44,8 +46,7 @@ def login():
     username = reallogin['username']
     if rememberMe:
         with open("session.dat", "w") as f:
-            # TODO: ENCRYPTION
-            f.write([c for c in s.cookies if c.name == "session"][0].value)
+            f.write(base64.b85encode([c for c in s.cookies if c.name == "session"][0].value.encode()).decode())
     return username
 
 def serverlist():
