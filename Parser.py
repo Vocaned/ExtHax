@@ -5,38 +5,44 @@ PREFIX = "."
 
 debug = True
 
+#[0] = send to client
+#[1] = send to server
 returndata = [b'', b'']
 
-# server = From server
+# server = To server
 
 def paddedString(string):
     if len(string) < 64:
         string += b'\x20' * (64 - len(string))
     if len(string) > 64:
-        return b"&cTODO: MESSAGE TOO LONG" + b'\x20' * (64 - 24)
+        return b"&cTODO: MESSAGE OVER 64 BYTES" + b'\x20' * (64 - 29)
     return string
 
 def sendPacket(data, server):
     global returndata
-    if server:
-        returndata[1] = bytearray(returndata[1] + data)
-    else:
+    # printPacket(data.hex()[:2], data.hex()[2:], server)
+    if not server:
         returndata[0] = bytearray(returndata[0] + data)
+    else:
+        data = data.replace(b"&", b"%")
+        returndata[1] = bytearray(returndata[1] + data)
 
 
-def clientMessage(string, messageType=0):
-    sendPacket(b"\x0d" + chr(messageType).encode("cp437") + paddedString(b"&f[&aExtHAX&f] " + string.encode("cp437")), False)
+def sendMessage(string, server, messageType=0):
+    prefix = ""
+    if not server:
+        prefix = "&f[&aExtHAX&f] "
+    sendPacket(b"\x0d" + bytes([messageType]) + paddedString((prefix + string).encode("cp437")), server)
 
-
-def printPacket(string, packet_id, server=False):
+def printPacket(packet_id, string, server=False):
     if debug:
         if server:
-            print(PACKET + "[S->C][" + packet_id + "] " + string)
+            print(PACKET + "[S->C][" + str(packet_id) + "] " + str(string))
         else:
-            print(PACKET + "[C->S][" + packet_id + "] " + string)
+            print(PACKET + "[C->S][" + str(packet_id) + "] " + str(string))
 
 def h_posandori(data, server):
-    #printPacket(data[:16].hex(), "0x8", server) 
+    #printPacket("0x8", data[:16].hex(), server) 
     if server:
         # entityID = struct.unpack('c', data[1:2])[0]
         # X, Y, Z = struct.unpack('>iii', data[2:14])
@@ -45,7 +51,7 @@ def h_posandori(data, server):
         # entityID = struct.unpack('h', data[1:3])[0]
         # X, Y, Z = struct.unpack('>iii', data[3:15])
         return data[17:]
-    #printPacket(f"ID {str(entityID)} {str(round(X/32))}, {str(round(Y/32-1))}, {str(round(Z/32))}", "0x8", server)
+    #printPacket("0x8", f"ID {str(entityID)} {str(round(X/32))}, {str(round(Y/32-1))}, {str(round(Z/32))}", server)
 
 def h_posandoriupdate(data, server):
     return data[7:]
@@ -65,9 +71,9 @@ def h_removeplayername(data, server):
 def h_ping(data, server):
     """server = struct.unpack('?', data[1:2])[0]
     if server:
-        printPacket("Pong!", "2b", True)
+        printPacket("2b", "Pong!", True)
     else:
-        printPacket("Ping!", "2b")"""
+        printPacket("2b", "Ping!")"""
     return data[4:]
 
 def h_playerclick(data, server):
@@ -98,7 +104,7 @@ def h_reach(data, server):
 
 def h_message(data, server):
     msg = data[2:66].decode("cp437").strip()
-    printPacket(msg, "2b", server)
+    printPacket("2b", msg, server)
     if not server and msg.startswith("."):
         clientCommands(msg)
     return data[66:]
@@ -114,38 +120,39 @@ def clientCommands(msg):
         ("client", "Change client name"),
         ("model", "Change your model"),
         ("reach", "Change how far you can reach"),
-        ("env", "Change the environment")
+        ("env", "Change the environment"),
     ]
+
     try:
         args = msg.split()
         args[0] = args[0].lstrip(PREFIX).lower()
         if args[0] == "help":
-            clientMessage("&bby Fam0r", 100)
-            clientMessage("&bCommands:")
+            sendMessage("&bby Fam0r", False, 100)
+            sendMessage("&bCommands:", False)
             for command in commands:
-                clientMessage("&3" + PREFIX + command[0] + " &f- &3" + command[1])
+                sendMessage("&3" + PREFIX + command[0] + " &f- &3" + command[1], False)
         elif args[0] == "hello":
-            clientMessage("&bHello, World!")
+            sendMessage("&bHello, World!", False)
         elif args[0] == "tp":
                 X, Y, Z = msg.split()[1:4]
                 sendPacket(b"\x08\xFF" + struct.pack('>iii', int(X)*32+16, int(Y)*32+32, int(Z)*32+16) + b"\x00\x00", False)
         elif args[0] == "motd":
             sendPacket(b"\x00\x07" + paddedString(b"ExtHAX") + paddedString(" ".join(msg.split(" ")[1:]).encode("cp437")) + b"\x64", False)
-            clientMessage("&bMOTD set to " + " ".join(msg.split(" ")[1:]))
+            sendMessage("&bMOTD set to " + " ".join(msg.split(" ")[1:]), False)
         elif args[0] == "client":
             sendPacket(b"\x10" + paddedString(" ".join(msg.split(" ")[1:]).encode("cp437")) + b"\x00\x00", True)
-            clientMessage("&bClient name was set to " + " ".join(msg.split(" ")[1:]))
+            sendMessage("&bClient name was set to " + " ".join(msg.split(" ")[1:]), False)
         elif args[0] == "model":
             sendPacket(b"\x1d\xff" + paddedString(" ".join(msg.split(" ")[1:]).encode("cp437")), False)
-            clientMessage("&bChanged was set to " + " ".join(msg.split(" ")[1:]))
+            sendMessage("&bChanged was set to " + " ".join(msg.split(" ")[1:]), False)
         elif args[0] == "reach":
             sendPacket(b"\x12" + struct.pack('>h', int(int(msg.split()[1])*32)), False)
-            clientMessage("&bReach distance was set to " + msg.split()[1]) 
+            sendMessage("&bReach distance was set to " + msg.split()[1], False)
         elif args[0] == "env":
             vals = ("sky", "cloud", "fog", "shadow", "sun", "weather")
             if len(args) < 3 or args[1].lower() not in vals:
-                clientMessage("&cInvalid environment. Possible values:")
-                clientMessage("&csky, cloud, fog, shadow, sun, weather")
+                sendMessage("&cInvalid environment. Possible values:", False)
+                sendMessage("&csky, cloud, fog, shadow, sun, weather", False)
                 return
             args[1] = args[1].lower()
             args[2] = args[2].lower()
@@ -172,13 +179,13 @@ def clientCommands(msg):
                 elif args[2] == "snow":
                     sendPacket(b"\x1f\x02", False)
                 else:
-                    clientMessage("&cInvalid weather. Possible values:")
-                    clientMessage("&csun, rain, snow")
+                    sendMessage("&cInvalid weather. Possible values:", False)
+                    sendMessage("&csun, rain, snow", False)
         else:
-            clientMessage("&cUnknown command!")
+            sendMessage("&cUnknown command!", False)
     except Exception as e:
             print(e)
-            clientMessage("&cCould not execute the command!")
+            sendMessage("&cCould not execute the command!", False)
         
 
 packets = {
@@ -210,6 +217,6 @@ def parse(origdata, server):
             if found:
                 data = found(data, server)
             else:
-                printPacket("Unknown packet, length " + str(len(data)), packet_id, server)
+                printPacket(packet_id, "Unknown packet, length " + str(len(data)), server)
                 break
     return returndata

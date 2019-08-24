@@ -3,7 +3,7 @@ import socket
 import subprocess
 import Parser
 import Launcher
-from Utils import *
+from Utils import sprint, Status
 debug = True
 localIP = ("127.0.0.1", 25565)
 tries = 0

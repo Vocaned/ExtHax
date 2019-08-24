@@ -1,5 +1,5 @@
 import requests
-from Utils import *
+from Utils import sprint, Status, getpass, FG
 import base64
 s = requests.session()
 
@@ -23,7 +23,6 @@ def login():
     if rememberMe:
         try:
             with open("session.dat", "r") as f:
-                
                 test = s.get('https://www.classicube.net/api/login', cookies={"session": base64.b85decode(f.read().encode()).decode()}).json()
                 if test["authenticated"]:
                     return test["username"]
