@@ -1,9 +1,8 @@
 import requests
 from Utils import sprint, Status, getpass, FG
 import base64
+from config import rememberMe
 s = requests.session()
-
-rememberMe = True
 
 loginerrors = {
     'token': 'Internal error! Please try again.',

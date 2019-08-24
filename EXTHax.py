@@ -4,10 +4,8 @@ import subprocess
 import Parser
 import Launcher
 from Utils import sprint, Status
-debug = True
-localIP = ("127.0.0.1", 25565)
+from config import debug, ccPath, localIP
 tries = 0
-ccPath = "/home/fam0r/Desktop/Minecraft/McClassic/ClassiCube"
 
 if debug:
     import importlib

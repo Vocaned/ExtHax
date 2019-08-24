@@ -1,12 +1,11 @@
 import struct
 import Utils
+from config import debug
 PACKET = "[\x1B[35mPACKET\x1B[0m]"
 PREFIX = "."
 
-debug = True
-
-#[0] = send to client
-#[1] = send to server
+#[0] = sent to client
+#[1] = sent to server
 returndata = [b'', b'']
 
 # server = To server
