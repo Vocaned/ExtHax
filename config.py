@@ -8,5 +8,5 @@ rememberMe = True
 localIP = ("127.0.0.1", 25565)
 
 # Path to the ClassiCube client
-ccPath = "/home/fam0r/Desktop/Minecraft/McClassic/ClassiCube"
+ccPath = "/home/fam0r/Desktop/classicube/ClassiCube"
 

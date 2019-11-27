@@ -41,11 +41,11 @@ def printPacket(packet_id, string, server=False):
             print(PACKET + "[C->S][" + str(packet_id) + "] " + str(string))
 
 def h_posandori(data, server):
-    #printPacket("0x8", data[:16].hex(), server) 
+    #printPacket("0x8", data[:16].hex(), server)
     if server:
         # entityID = struct.unpack('c', data[1:2])[0]
         # X, Y, Z = struct.unpack('>iii', data[2:14])
-        return data[16:]           
+        return data[16:]
     else:
         # entityID = struct.unpack('h', data[1:3])[0]
         # X, Y, Z = struct.unpack('>iii', data[3:15])
@@ -96,6 +96,11 @@ def h_mapenv(data, server):
 def h_weather(data, server):
     return data[2:]
 
+def h_velocity(data, server):
+    X,Y,Z = struct.unpack('>iii', data[1:13])
+    sendMessage("Velocity set to " + str(X) + ", " + str(Y) + ", " + str(Z), False)
+    return data[16:]
+
 def h_reach(data, server):
     #dist = struct.unpack('>h', data[1:3])[0]/32
     #print(str(dist))
@@ -120,6 +125,7 @@ def clientCommands(msg):
         ("model", "Change your model"),
         ("reach", "Change how far you can reach"),
         ("env", "Change the environment"),
+        ("boost", "Change velocity")
     ]
 
     try:
@@ -180,12 +186,25 @@ def clientCommands(msg):
                 else:
                     sendMessage("&cInvalid weather. Possible values:", False)
                     sendMessage("&csun, rain, snow", False)
+        elif args[0] == "boost":
+            X, Y, Z = msg.split()[1:4]
+            xmode = ymode = zmode = b"\x01"
+            if X[0] == "~":
+                xmode = b"\x00"
+                X = X[1:]
+            if Y[0] == "~":
+                ymode = b"\x00"
+                Y = Y[1:]
+            if Z[0] == "~":
+                zmode = b"\x00"
+                Z = Z[1:]
+            sendPacket(b"\x2f" + struct.pack('>iii', int(X)*10000, int(Y)*10000, int(Z)*10000) + xmode+ymode+zmode, False)
         else:
             sendMessage("&cUnknown command!", False)
     except Exception as e:
             print(e)
             sendMessage("&cCould not execute the command!", False)
-        
+
 
 packets = {
     "00": h_identification,
@@ -203,7 +222,8 @@ packets = {
     "29": h_mapenv,
     "2b": h_ping,
     "0d": h_message,
-    "12": h_reach
+    "12": h_reach,
+    "2f": h_velocity
 }
 
 def parse(origdata, server):
