@@ -15,7 +15,7 @@ def proxy(username, serverIP, mppass):
     if debug:
         sprint(Status.DEBUG, "Starting a proxy [" + ":".join([str(s) for s in localIP]) + " -> " + ":".join([str(s) for s in serverIP]) + "]")
     sockets = []
-    
+
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         s.bind(localIP)
@@ -29,19 +29,19 @@ def proxy(username, serverIP, mppass):
         proxy(username, serverIP, mppass)
         return
     s.listen(1)
-    
+
     subprocess.Popen([ccPath, username, mppass, localIP[0], str(localIP[1])], stdout=subprocess.DEVNULL)
 
     s_src, _ = s.accept()
 
     s_dst = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s_dst.connect(serverIP) 
-    
+    s_dst.connect(serverIP)
+
     sockets.append(s_src)
     sockets.append(s_dst)
     while True:
         s_read, _, _ = select.select(sockets, [], [])
-        
+
         for s in s_read:
             data = s.recv(4096)
             if data:
@@ -74,4 +74,4 @@ if __name__ == '__main__':
     username = Launcher.login()
     server = Launcher.serverlist()
     proxy(username, (server["ip"], server["port"]), server['mppass'])
-    #proxy("Fam0r", ("46.69.208.238", 25565), "asd")
+    #proxy("Fam0r", ("127.0.0.1", 25565), "asd")

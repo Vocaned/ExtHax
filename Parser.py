@@ -55,6 +55,9 @@ def h_posandori(data, server):
 def h_posandoriupdate(data, server):
     return data[7:]
 
+def h_setblock(data, server):
+    return data[8:]
+
 def h_posupdate(data, server):
     return data[5:]
 
@@ -208,6 +211,7 @@ def clientCommands(msg):
 
 packets = {
     "00": h_identification,
+    "06": h_setblock,
     "08": h_posandori,
     "09": h_posandoriupdate,
     "0a": h_posupdate,
