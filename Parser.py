@@ -1,245 +1,178 @@
 import struct
 import Utils
 from config import debug
-PACKET = "[\x1B[35mPACKET\x1B[0m]"
-PREFIX = "."
+
+clientCPEs = []
+serverCPEs = []
+CPEs = []
+entrycount = 0
 
 #[0] = sent to client
 #[1] = sent to server
 returndata = [b'', b'']
 
-# server = To server
+def NOP(packet, data):
+    pass
 
-def paddedString(string):
-    if len(string) < 64:
-        string += b'\x20' * (64 - len(string))
-    if len(string) > 64:
-        return b"&cTODO: MESSAGE OVER 64 BYTES" + b'\x20' * (64 - 29)
-    return string
+addLen = lambda packet,length: Packet(packet.id, packet.length + length, callback=packet.callback)
+setLen = lambda packet,length: Packet(packet.id, length, callback=packet.callback)
 
-def sendPacket(data, server):
-    global returndata
-    # printPacket(data.hex()[:2], data.hex()[2:], server)
-    if not server:
-        returndata[0] = bytearray(returndata[0] + data)
-    else:
-        data = data.replace(b"&", b"%")
-        returndata[1] = bytearray(returndata[1] + data)
+def S_ExtEntry(packet, data):
+    global serverCPEs
+    _, name, ver = struct.unpack('>c64si', data)
+    serverCPEs.append((name.strip(), ver))
 
+def C_ExtInfo(packet, data):
+    global entrycount
+    _, _, entrycount = struct.unpack('>c64sh', data)
 
-def sendMessage(string, server, messageType=0):
-    prefix = ""
-    if not server:
-        prefix = "&f[&aExtHAX&f] "
-    sendPacket(b"\x0d" + bytes([messageType]) + paddedString((prefix + string).encode("cp437")), server)
+def C_ExtEntry(packet, data):
+    global CPEs, clientCPEs, entrycount, S2C, C2S
+    _, name, ver = struct.unpack('>c64si', data)
+    clientCPEs.append((name.strip(), ver))
+    entrycount -= 1
+    if entrycount == 0:
+        CPEs = [i for i in clientCPEs if i in serverCPEs]
+        for CPE in CPEs:
+            CPEname = CPE[0].decode('utf-8')
+            Utils.sprint(Utils.Status.INFO, f"CPE {CPEname} v{CPE[1]} enabled.")
+            if CPEname == 'EnvMapAppearance':
+                S2C['EnvSetMapAppearance'] =    addLen(S2C['EnvSetMapAppearance'], 4)
+            elif CPEname == 'BlockDefinitionsExt' and CPE[1] > 1:
+                S2C['DefineBlockExt'] =         addLen(S2C['DefineBlockExt'], 3)
+            elif CPEname == 'ExtEntityPositions':
+                C2S['posOri'] =                 addLen(C2S['posOri'], 6)
+                S2C['spawnPlayer'] =            addLen(S2C['spawnPlayer'], 6)
+                S2C['posOri'] =                 addLen(S2C['posOri'], 6)
+                S2C['ExtAddEntity2'] =          addLen(S2C['ExtAddEntity2'], 6)
+                S2C['SetSpawnpoint'] =          addLen(S2C['SetSpawnpoint'], 6)
+            elif CPEname == 'FastMap':
+                S2C['lvlInit'] =                addLen(S2C['lvlInit'], 4)
+            elif CPEname == 'CustomModels' and CPE[1] == 2:
+                S2C['DefineModelPart'] =        setLen(S2C['DefineModelPart'], 167)
+            elif CPEname == 'ExtendedTextures':
+                S2C['DefineBlock'] =            addLen(S2C['DefineBlock'], 3)
+                S2C['DefineBlockExt'] =         addLen(S2C['DefineBlockExt'], 6)
+            elif CPEname == 'ExtendedBlocks':
+                S2C['posOri'] =                 addLen(S2C['posOri'], 1)
+                C2S['posOri'] =                 addLen(C2S['posOri'], 1)
+                C2S['setBlock'] =               addLen(C2S['setBlock'], 1)
+                S2C['setBlock'] =               addLen(S2C['setBlock'], 1)
+                S2C['HeldBlock'] =              addLen(S2C['HeldBlock'], 1)
+                S2C['SetBlockPermission'] =     addLen(S2C['SetBlockPermission'], 1)
+                S2C['RemoveBlockDefinition'] =  addLen(S2C['RemoveBlockDefinition'], 1)
+                S2C['BulkBlockUpdate'] =        addLen(S2C['BulkBlockUpdate'], 64)
+                S2C['SetInventoryOrder'] =      addLen(S2C['SetInventoryOrder'], 2)
+                S2C['SetHotbar'] =              addLen(S2C['SetHotbar'], 1)
+                S2C['DefineBlock'] =            addLen(S2C['DefineBlock'], 1)
+                S2C['DefineBlockExt'] =         addLen(S2C['DefineBlockExt'], 1)
 
-def printPacket(packet_id, string, server=False):
-    if debug:
-        if server:
-            print(PACKET + "[S->C][" + str(packet_id) + "] " + str(string))
-        else:
-            print(PACKET + "[C->S][" + str(packet_id) + "] " + str(string))
+def S_Message(packet, data):
+    _, type, msg = struct.unpack('cc64s', data)
+    if type == b'\x00':
+        Utils.sprint('MSG', msg.decode(encoding="ascii", errors="ignore"))
 
-def h_posandori(data, server):
-    #printPacket("0x8", data[:16].hex(), server)
-    if server:
-        # entityID = struct.unpack('c', data[1:2])[0]
-        # X, Y, Z = struct.unpack('>iii', data[2:14])
-        return data[16:]
-    else:
-        # entityID = struct.unpack('h', data[1:3])[0]
-        # X, Y, Z = struct.unpack('>iii', data[3:15])
-        return data[17:]
-    #printPacket("0x8", f"ID {str(entityID)} {str(round(X/32))}, {str(round(Y/32-1))}, {str(round(Z/32))}", server)
+class Packet():
+    def __init__(self, packet_id, length, callback=NOP):
+        self.id = packet_id
+        self.length = length
+        self.callback = callback
 
-def h_posandoriupdate(data, server):
-    return data[7:]
+C2S = {
+    # Vanilla
+    'playerId' :              Packet(b'\x00', 131),
+    'setBlock' :              Packet(b'\x05', 8),
+    'posOri' :                Packet(b'\x08', 10),
+    'message' :               Packet(b'\x0D', 66),
 
-def h_setblock(data, server):
-    return data[8:]
-
-def h_posupdate(data, server):
-    return data[5:]
-
-def h_oriupdate(data, server):
-    return data[4:]
-
-def h_addplayername(data, server):
-    return data[196:]
-
-def h_removeplayername(data, server):
-    return data[3:]
-
-def h_ping(data, server):
-    """server = struct.unpack('?', data[1:2])[0]
-    if server:
-        printPacket("2b", "Pong!", True)
-    else:
-        printPacket("2b", "Ping!")"""
-    return data[4:]
-
-def h_playerclick(data, server):
-    return data[15:]
-
-def h_identification(data, server):
-    return data[131:]
-
-def h_envcolor(data, server):
-    return data[8:]
-
-def h_changemodel(data, server):
-    return data[66:]
-
-def h_hackcontrol(data, server):
-    return data[8:]
-
-def h_mapenv(data, server):
-    return data[6:]
-
-def h_weather(data, server):
-    return data[2:]
-
-def h_velocity(data, server):
-    X,Y,Z = struct.unpack('>iii', data[1:13])
-    sendMessage("Velocity set to " + str(X) + ", " + str(Y) + ", " + str(Z), False)
-    return data[16:]
-
-def h_reach(data, server):
-    #dist = struct.unpack('>h', data[1:3])[0]/32
-    #print(str(dist))
-    return data[3:]
-
-def h_message(data, server):
-    msg = data[2:66].decode("cp437").strip()
-    printPacket("2b", msg, server)
-    if not server and msg.startswith("."):
-        clientCommands(msg)
-    return data[66:]
-
-def clientCommands(msg):
-    global returndata
-    returndata[1] = b''
-    commands = [
-        ("help", "Shows all commands"),
-        ("hello", "Hello, World!"),
-        ("tp", "Teleports to X Y Z"),
-        ("motd", "Change the MOTD"),
-        ("client", "Change client name"),
-        ("model", "Change your model"),
-        ("reach", "Change how far you can reach"),
-        ("env", "Change the environment"),
-        ("boost", "Change velocity")
-    ]
-
-    try:
-        args = msg.split()
-        args[0] = args[0].lstrip(PREFIX).lower()
-        if args[0] == "help":
-            sendMessage("&bby Fam0r", False, 100)
-            sendMessage("&bCommands:", False)
-            for command in commands:
-                sendMessage("&3" + PREFIX + command[0] + " &f- &3" + command[1], False)
-        elif args[0] == "hello":
-            sendMessage("&bHello, World!", False)
-        elif args[0] == "tp":
-                X, Y, Z = msg.split()[1:4]
-                sendPacket(b"\x08\xFF" + struct.pack('>iii', int(X)*32+16, int(Y)*32+32, int(Z)*32+16) + b"\x00\x00", False)
-        elif args[0] == "motd":
-            sendPacket(b"\x00\x07" + paddedString(b"ExtHAX") + paddedString(" ".join(msg.split(" ")[1:]).encode("cp437")) + b"\x64", False)
-            sendMessage("&bMOTD set to " + " ".join(msg.split(" ")[1:]), False)
-        elif args[0] == "client":
-            sendPacket(b"\x10" + paddedString(" ".join(msg.split(" ")[1:]).encode("cp437")) + b"\x00\x00", True)
-            sendMessage("&bClient name was set to " + " ".join(msg.split(" ")[1:]), False)
-        elif args[0] == "model":
-            sendPacket(b"\x1d\xff" + paddedString(" ".join(msg.split(" ")[1:]).encode("cp437")), False)
-            sendMessage("&bChanged was set to " + " ".join(msg.split(" ")[1:]), False)
-        elif args[0] == "reach":
-            sendPacket(b"\x12" + struct.pack('>h', int(int(msg.split()[1])*32)), False)
-            sendMessage("&bReach distance was set to " + msg.split()[1], False)
-        elif args[0] == "env":
-            vals = ("sky", "cloud", "fog", "shadow", "sun", "weather")
-            if len(args) < 3 or args[1].lower() not in vals:
-                sendMessage("&cInvalid environment. Possible values:", False)
-                sendMessage("&csky, cloud, fog, shadow, sun, weather", False)
-                return
-            args[1] = args[1].lower()
-            args[2] = args[2].lower()
-            if args[1] == "sky":
-                r,g,b = Utils.hex2RGB(args[2])
-                sendPacket(b"\x19\x00" + struct.pack(">hhh", r,g,b), False)
-            elif args[1] == "cloud" or args[1] == "clouds":
-                r,g,b = Utils.hex2RGB(args[2])
-                sendPacket(b"\x19\x01" + struct.pack(">hhh", r,g,b), False)
-            elif args[1] == "fog":
-                r,g,b = Utils.hex2RGB(args[2])
-                sendPacket(b"\x19\x02" + struct.pack(">hhh", r,g,b), False)
-            elif args[1] == "shadow" or args[1] == "shadows":
-                r,g,b = Utils.hex2RGB(args[2])
-                sendPacket(b"\x19\x03" + struct.pack(">hhh", r,g,b), False)
-            elif args[1] == "sun":
-                r,g,b = Utils.hex2RGB(args[2])
-                sendPacket(b"\x19\x04" + struct.pack(">hhh", r,g,b), False)
-            elif args[1] == "weather":
-                if args[2] == "sun":
-                    sendPacket(b"\x1f\x00", False)
-                elif args[2] == "rain":
-                    sendPacket(b"\x1f\x01", False)
-                elif args[2] == "snow":
-                    sendPacket(b"\x1f\x02", False)
-                else:
-                    sendMessage("&cInvalid weather. Possible values:", False)
-                    sendMessage("&csun, rain, snow", False)
-        elif args[0] == "boost":
-            X, Y, Z = msg.split()[1:4]
-            xmode = ymode = zmode = b"\x01"
-            if X[0] == "~":
-                xmode = b"\x00"
-                X = X[1:]
-            if Y[0] == "~":
-                ymode = b"\x00"
-                Y = Y[1:]
-            if Z[0] == "~":
-                zmode = b"\x00"
-                Z = Z[1:]
-            sendPacket(b"\x2f" + struct.pack('>iii', int(X)*10000, int(Y)*10000, int(Z)*10000) + xmode+ymode+zmode, False)
-        else:
-            sendMessage("&cUnknown command!", False)
-    except Exception as e:
-            print(e)
-            sendMessage("&cCould not execute the command!", False)
-
-
-packets = {
-    "00": h_identification,
-    "06": h_setblock,
-    "08": h_posandori,
-    "09": h_posandoriupdate,
-    "0a": h_posupdate,
-    "0b": h_oriupdate,
-    "16": h_addplayername,
-    "18": h_removeplayername,
-    "19": h_envcolor,
-    "1d": h_changemodel,
-    "1f": h_weather,
-    "20": h_hackcontrol,
-    "22": h_playerclick,
-    "29": h_mapenv,
-    "2b": h_ping,
-    "0d": h_message,
-    "12": h_reach,
-    "2f": h_velocity
+    # CPE
+    'ExtInfo' :               Packet(b'\x10', 67, callback=C_ExtInfo),
+    'ExtEntry' :              Packet(b'\x11', 69, callback=C_ExtEntry),
+    'CustomBlockSupportLvl' : Packet(b'\x13', 2),
+    'PlayerClicked' :         Packet(b'\x22', 15),
+    'TwoWayPing' :            Packet(b'\x2B', 4)
 }
 
-def parse(origdata, server):
+
+S2C = {
+    # Vanilla
+    'serverId' :              Packet(b'\x00', 131),
+    'ping' :                  Packet(b'\x01', 1),
+    'lvlInit' :               Packet(b'\x02', 1),
+    'lvlChunk' :              Packet(b'\x03', 1028),
+    'lvlFinal' :              Packet(b'\x04', 7),
+    'setBlock' :              Packet(b'\x06', 8),
+    'spawnPlayer' :           Packet(b'\x07', 74),
+    'posOri' :                Packet(b'\x08', 10),
+    'posOriUpdate' :          Packet(b'\x09', 7),
+    'posUpdate' :             Packet(b'\x0A', 5),
+    'oriUpdate' :             Packet(b'\x0B', 4),
+    'despawn' :               Packet(b'\x0C', 2),
+    'message' :               Packet(b'\x0D', 66, callback=S_Message),
+    'disconnect' :            Packet(b'\x0E', 65),
+    'updateUser' :            Packet(b'\x0F', 2),
+
+    # CPE
+    'ExtInfo' :               Packet(b'\x10', 67),
+    'ExtEntry' :              Packet(b'\x11', 69, callback=S_ExtEntry),
+    'ClickDistance' :         Packet(b'\x12', 3),
+    'CustomBlockSupportLvl' : Packet(b'\x13', 2),
+    'HeldBlock' :             Packet(b'\x14', 3),
+    'SetTextHotKey' :         Packet(b'\x15', 134),
+    'ExtAddPlayerName' :      Packet(b'\x16', 196),
+    'AddEntity' :             Packet(b'\x17', 130),
+    'ExtRemovePlayerName' :   Packet(b'\x18', 3),
+    'EnvSetColor' :           Packet(b'\x19', 8),
+    'MakeSelection' :         Packet(b'\x1A', 86),
+    'RemoveSelection' :       Packet(b'\x1B', 2),
+    'SetBlockPermission' :    Packet(b'\x1C', 4),
+    'ChangeModel' :           Packet(b'\x1D', 66),
+    'EnvSetMapAppearance' :   Packet(b'\x1E', 73),
+    'EnvSetWeatherType' :     Packet(b'\x1F', 2),
+    'HackControl' :           Packet(b'\x20', 8),
+    'ExtAddEntity2' :         Packet(b'\x21', 138),
+    'DefineBlock' :           Packet(b'\x23', 80),
+    'RemoveBlockDefinition' : Packet(b'\x24', 2),
+    'DefineBlockExt' :        Packet(b'\x25', 85),
+    'BulkBlockUpdate' :       Packet(b'\x26', 1282),
+    'SetTextColor' :          Packet(b'\x27', 6),
+    'SetMapEnvUrl' :          Packet(b'\x28', 65),
+    'SetMapEnvProperty' :     Packet(b'\x29', 6),
+    'SetEntityProperty' :     Packet(b'\x2A', 7),
+    'TwoWayPing' :            Packet(b'\x2B', 4),
+    'SetInventoryOrder' :     Packet(b'\x2C', 3),
+    'SetHotbar' :             Packet(b'\x2D', 3),
+    'SetSpawnpoint' :         Packet(b'\x2E', 3),
+    'SetVelocity' :           Packet(b'\x2F', 16),
+    'DefineEffect' :          Packet(b'\x30', 36),
+    'SpawnEffect' :           Packet(b'\x31', 26),
+    'DefineModel' :           Packet(b'\x32', 116),
+    'DefineModelPart' :       Packet(b'\x33', 104),
+    'UndefineModel' :         Packet(b'\x34', 2)
+}
+
+
+def getC2SPacket(data):
+    for packet in C2S.values():
+        if packet.id == data[:1]:
+            return packet
+    return False
+
+def getS2CPacket(data):
+    for packet in S2C.values():
+        if packet.id == data[:1]:
+            return packet
+    return False
+
+def parse(opcode, data, S2C):
     global returndata
-    returndata = origdata
-    for data in origdata:
-        while len(data) > 1:
-            packet_id = struct.unpack('c', data[:1])[0].hex()
-            found = packets.get(packet_id, False)
-            if found:
-                data = found(data, server)
-            else:
-                printPacket(packet_id, "Unknown packet, length " + str(len(data)), server)
-                break
+    if S2C:
+        packet = getS2CPacket(opcode)
+        returndata = [opcode+data, b'']
+    else:
+        packet = getC2SPacket(opcode)
+        returndata = [b'', opcode+data]
+    if not packet:
+        return False
+    packet.callback(packet, opcode+data)
     return returndata
