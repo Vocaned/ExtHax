@@ -74,6 +74,9 @@ def proxy(username, serverIP, mppass):
                     d = Parser.parse(packetID, data, False)
                 if not d:
                     sprint(Status.ERROR, f'Could not parse packet {packetID}', fullColor=True)
+                if debug:
+                    print(f'<-{d[0].hex()}')
+                    print(f'->{d[1].hex()}')
                 client.sendall(d[0])
                 server.sendall(d[1])
             except SystemExit:

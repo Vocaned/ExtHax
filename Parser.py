@@ -54,7 +54,7 @@ def C_ExtEntry(packet, data):
                 S2C['DefineBlock'] =            addLen(S2C['DefineBlock'], 3)
                 S2C['DefineBlockExt'] =         addLen(S2C['DefineBlockExt'], 6)
             elif CPEname == 'ExtendedBlocks':
-                S2C['posOri'] =                 addLen(S2C['posOri'], 1)
+                #S2C['posOri'] =                 addLen(S2C['posOri'], 1)
                 C2S['posOri'] =                 addLen(C2S['posOri'], 1)
                 C2S['setBlock'] =               addLen(C2S['setBlock'], 1)
                 S2C['setBlock'] =               addLen(S2C['setBlock'], 1)
@@ -81,7 +81,7 @@ class Packet():
 C2S = {
     # Vanilla
     'playerId' :              Packet(b'\x00', 131),
-    'setBlock' :              Packet(b'\x05', 8),
+    'setBlock' :              Packet(b'\x05', 9),
     'posOri' :                Packet(b'\x08', 10),
     'message' :               Packet(b'\x0D', 66),
 
@@ -142,7 +142,7 @@ S2C = {
     'TwoWayPing' :            Packet(b'\x2B', 4),
     'SetInventoryOrder' :     Packet(b'\x2C', 3),
     'SetHotbar' :             Packet(b'\x2D', 3),
-    'SetSpawnpoint' :         Packet(b'\x2E', 3),
+    'SetSpawnpoint' :         Packet(b'\x2E', 9),
     'SetVelocity' :           Packet(b'\x2F', 16),
     'DefineEffect' :          Packet(b'\x30', 36),
     'SpawnEffect' :           Packet(b'\x31', 26),
