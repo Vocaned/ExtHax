@@ -10,14 +10,14 @@ tries = 0
 
 def proxy(username, serverIP, mppass):
     global tries, localIP
-    if debug:
-        sprint(Status.DEBUG, "Starting a proxy [" + ":".join([str(s) for s in localIP]) + " -> " + ":".join([str(s) for s in serverIP]) + "]")
+    sprint(Status.INFO, "Starting a proxy [" + ":".join([str(s) for s in localIP]) + " -> " + ":".join([str(s) for s in serverIP]) + "]")
     sockets = []
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         s.bind(localIP)
     except:
+        # Try binding to multiple ports in case default port is already taken
         if tries > 10:
             sprint(Status.ERROR, "Could not create a proxy.")
             exit(1)
@@ -92,8 +92,8 @@ def proxy(username, serverIP, mppass):
                         sprint(Status.WARN, "[C->S] " + packetID.hex() + data.hex())
                         server.sendall(packetID+data)
                 except:
-                    sprint(Status.ERROR, "DROPPING A PACKET DUE TO AN ERROR")
-                    exit()
+                    sprint(Status.FATAL, "Exception while sending packets.")
+                    exit(1)
 
 if __name__ == '__main__':
     username = Launcher.login()
