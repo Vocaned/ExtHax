@@ -1,6 +1,3 @@
-# Print more information and reload Parser.py on the fly
-debug = True
-
 # Save your session token so you don't have to log in every time
 rememberMe = True
 
@@ -8,5 +5,6 @@ rememberMe = True
 localIP = ("127.0.0.1", 25565)
 
 # Path to the ClassiCube client
-ccPath = "/home/fam0r/Documents/classicube/ClassiCube"
+ccPath = '/home/fam0r/Documents/classicube/ClassiCube'
 
+commandPrefix = '.'

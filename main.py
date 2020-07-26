@@ -5,13 +5,12 @@ import Parser
 import Launcher
 import time
 from Utils import sprint, Status
-from config import debug, ccPath, localIP
+from config import ccPath, localIP
 tries = 0
 
 def proxy(username, serverIP, mppass):
     global tries, localIP
-    if debug:
-        sprint(Status.DEBUG, "Starting a proxy [" + ":".join([str(s) for s in localIP]) + " -> " + ":".join([str(s) for s in serverIP]) + "]")
+    sprint(Status.INFO, "Starting a proxy [" + ":".join([str(s) for s in localIP]) + " -> " + ":".join([str(s) for s in serverIP]) + "]")
     sockets = []
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -74,9 +73,6 @@ def proxy(username, serverIP, mppass):
                     d = Parser.parse(packetID, data, False)
                 if not d:
                     sprint(Status.ERROR, f'Could not parse packet {packetID}', fullColor=True)
-                if debug:
-                    print(f'<-{d[0].hex()}')
-                    print(f'->{d[1].hex()}')
                 client.sendall(d[0])
                 server.sendall(d[1])
             except SystemExit:
