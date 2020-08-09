@@ -53,5 +53,5 @@ def parse(opcode, data, S2C):
     if not packet:
         return False
 
-    callback(packet, opcode+data, S2C)
+    returndata = callback(returndata, packet, opcode+data, S2C)
     return returndata

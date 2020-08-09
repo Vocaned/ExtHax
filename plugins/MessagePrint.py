@@ -1,6 +1,7 @@
 import struct
 from Constants import Plugin, Packet, S2C, C2S
 
+
 class MessagePrint(Plugin):
     def __init__(self):
         super().__init__()
@@ -9,7 +10,7 @@ class MessagePrint(Plugin):
             S2C['message']: self.S_Message,
         }
         self.onLoad()
-    
+
     def S_Message(self, packet, data):
         _, type, msg = struct.unpack('cc64s', data)
         if type == b'\x00':

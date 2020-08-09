@@ -12,6 +12,15 @@ class Plugin(object):
     def onLoad(self):
         print(f'Plugin {self.name} loaded.')
 
+class Command(object):
+    def __init__(self):
+        self.name = 'invalid' # Command names should be lower case and not contain any spaces
+        self.description = 'Invalid command'
+        self.help = f'{self.name} - {self.description}'
+    
+    def call(self, returndata, args):
+        return returndata
+
 C2S = {
     # Vanilla
     'playerId' :              Packet(b'\x00', 131),
