@@ -22,6 +22,14 @@ def getReturnData():
 #List of plugin classes currently loaded
 loadedPlugins = {}
 
+def loadPlugin(plugin: str):
+    if plugin in loadedPlugins:
+        print(f'Plugin {plugin} is already loaded.')
+        return
+    mod = __import__(f'plugins.{plugin}', fromlist=['plugin'])
+    pluginClass = getattr(mod, 'plugin')
+    loadedPlugins[plugin] = pluginClass()
+
 def sendMessage(string, S2C: bool):
     # TODO: Check that client and server support LongerMessages CPE
     chunks = []
@@ -50,6 +58,7 @@ class Packet(object):
         self.length = length
 
 class Plugin(object):
+    #from Constants import sendMessage
     def __init__(self):
         self.name = 'Unknown Plugin'
         self.description = ''
@@ -58,7 +67,7 @@ class Plugin(object):
         self.commands = {}
 
     def onLoad(self):
-        print(f'Plugin {self.name} loaded.')
+        sendMessage(f'&7Plugin {self.name} loaded.', True)
 
 C2S = {
     # Vanilla

@@ -12,4 +12,3 @@ class plugin(Plugin):
 
     def testCmd(self, args):
         print(f'Test command: ARGS {args}')
-        setReturnData(None, b'')
