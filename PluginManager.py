@@ -1,5 +1,5 @@
 import struct
-from config import commandPrefix
+from config import commandPrefix, initPlugins
 from Constants import loadedPlugins, loadPlugin, Plugin, setReturnData
 
 def callback(packet, data, S2C):
@@ -26,7 +26,10 @@ def init(data):
     # TODO: Currently assumes the server supports CPE
     _, _, _, _, padding = struct.unpack('cc64s64sc', data)
     if padding == b'\x42': # CPE magic number
-        loadPlugin('CPE')    
+        loadPlugin('CPE')   
+
+    for plugin in initPlugins:
+        loadPlugin(plugin)
 
 def commandCall(data):
     _, type, msg = struct.unpack('cc64s', data)

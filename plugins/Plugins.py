@@ -1,4 +1,5 @@
 from Constants import loadedPlugins, Plugin, sendMessage, setReturnData, loadPlugin
+import glob
 
 class plugin(Plugin):
     def __init__(self):
@@ -15,7 +16,13 @@ class plugin(Plugin):
     def pluginListCmd(self, args):
         sendMessage('&eLoaded plugins:', True)
         for plugin in loadedPlugins:
-            sendMessage(f'&7 - {plugin}', True)
+            sendMessage(f"&a - {plugin}", True)
+        
+        sendMessage('&eUnloaded plugins:', True)
+        for file in glob.glob('plugins/*.py'):
+            file = file.replace('plugins/', '').rsplit('.', 1)[0]
+            if file != '__init__' and file not in loadedPlugins:
+                sendMessage(f"&c - {file}", True)
 
     def loadPluginCmd(self, args):
         if len(args) > 1:
