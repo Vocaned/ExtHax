@@ -1,6 +1,18 @@
 import struct
 from config import commandPrefix, initPlugins
-from Constants import loadedPlugins, loadPlugin, Plugin, setReturnData
+from Constants import loadedPlugins, loadPlugin, Plugin, setReturnData, sendMessage
+
+def init(data):
+    loadPlugin('Plugins')
+    
+    # Determine if client supports CPE
+    # TODO: Currently assumes the server supports CPE
+    _, _, _, _, padding = struct.unpack('cc64s64sc', data)
+    if padding == b'\x42': # CPE magic number
+        loadPlugin('CPE')   
+
+    for plugin in initPlugins:
+        loadPlugin(plugin)
 
 def callback(packet, data, S2C):
     if not S2C and packet.id == b'\00':
@@ -19,31 +31,22 @@ def callback(packet, data, S2C):
         if '*' in asd:
             asd['*'](packet, data)
 
-def init(data):
-    loadPlugin('Plugins')
-    
-    # Determine if client supports CPE
-    # TODO: Currently assumes the server supports CPE
-    _, _, _, _, padding = struct.unpack('cc64s64sc', data)
-    if padding == b'\x42': # CPE magic number
-        loadPlugin('CPE')   
-
-    for plugin in initPlugins:
-        loadPlugin(plugin)
-
 def commandCall(data):
     _, type, msg = struct.unpack('cc64s', data)
-    if type != b'\x00':
+    if type > b'\x01':
         return
-    
+
     msg = msg.decode(encoding="ascii", errors="ignore").rstrip(' ')
     if not msg.startswith(commandPrefix):
         return
+
+    setReturnData(None, b'')
  
     cmd = msg.lstrip(commandPrefix).split(' ')[0].lower()
 
     for pluginClass in loadedPlugins:
         pluginClass = loadedPlugins[pluginClass]
         if cmd in pluginClass.commands:
-            setReturnData(None, b'')
             return pluginClass.commands[cmd](msg.split(' ')[1:])
+
+    sendMessage(f'&cUnknown command &7{commandPrefix}{cmd}', True)
