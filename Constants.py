@@ -12,6 +12,9 @@ def setReturnData(S2C, C2S):
 def getReturnData():
     return returndata
 
+#List of plugin classes currently loaded
+loadedPlugins = {}
+
 class Packet(object):
     def __init__(self, packet_id, length):
         self.id = packet_id

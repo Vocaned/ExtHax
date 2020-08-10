@@ -1,18 +1,22 @@
 import struct
 from config import commandPrefix
+from Constants import loadedPlugins
 
-from plugins.CPE import CPEplugin
-from plugins.MessagePrint import MessagePrint
-#from plugins.DebugPrint import DebugPrint
-from plugins.ExampleCommand import ExampleCommand
-
-
-plugins = [CPEplugin(), MessagePrint(), ExampleCommand()]
+def loadPlugin(plugin: str):
+    if plugin in loadedPlugins:
+        print(f'Plugin {plugin} is already loaded.')
+        return
+    mod = __import__(f'plugins.{plugin}', fromlist=['plugin'])
+    pluginClass = getattr(mod, 'plugin')
+    loadedPlugins[plugin] = pluginClass()
 
 def callback(packet, data, S2C):
+    if not S2C and packet.id == b'\00':
+        init(data)
     if not S2C and packet.id == b'\x0D':
         commandCall(data)
-    for pluginClass in plugins:
+    for pluginClass in loadedPlugins:
+        pluginClass = loadedPlugins[pluginClass]
         if S2C:
             asd = pluginClass.S2Ccallbacks
         else:
@@ -22,6 +26,13 @@ def callback(packet, data, S2C):
             asd[packet](packet, data)
         if '*' in asd:
             asd['*'](packet, data)
+
+def init(data):
+    # Determine if client supports CPE
+    # TODO: Currently assumes the server supports CPE
+    _, _, _, _, padding = struct.unpack('cc64s64sc', data)
+    if padding == b'\x42': # CPE magic number
+        loadPlugin('CPE')
 
 def commandCall(data):
     _, type, msg = struct.unpack('cc64s', data)
@@ -34,6 +45,7 @@ def commandCall(data):
  
     cmd = msg.lstrip(commandPrefix).split(' ')[0]
 
-    for commandClass in plugins:
-        if cmd in commandClass.commands:
-            return commandClass.commands[cmd](msg.split(' ')[1:])
+    for pluginClas in loadedPlugins:
+        pluginClass = loadedPlugins[pluginClass]
+        if cmd in pluginClas.commands:
+            return pluginClas.commands[cmd](msg.split(' ')[1:])

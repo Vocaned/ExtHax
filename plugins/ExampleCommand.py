@@ -1,6 +1,6 @@
 from Constants import Plugin, setReturnData
 
-class ExampleCommand(Plugin):
+class plugin(Plugin):
     def __init__(self):
         super().__init__()
         self.name = 'testcom'
@@ -8,6 +8,7 @@ class ExampleCommand(Plugin):
         self.commands = {
             'testcommand': self.testCmd
         }
+        self.onLoad()
 
     def testCmd(self, args):
         print(f'Test command: ARGS {args}')

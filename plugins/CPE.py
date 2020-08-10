@@ -1,7 +1,7 @@
 from Constants import Plugin, Packet, S2C, C2S
 import struct
 
-class CPEplugin(Plugin):
+class plugin(Plugin):
     def __init__(self):
         super().__init__()
         self.name = 'CPE Support'

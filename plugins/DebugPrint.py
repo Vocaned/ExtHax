@@ -1,6 +1,6 @@
 from Constants import Plugin, Packet, S2C, C2S
 
-class DebugPrint(Plugin):
+class plugin(Plugin):
     def __init__(self):
         super().__init__()
         self.name = 'DebugPrint'
