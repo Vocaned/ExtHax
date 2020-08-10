@@ -1,3 +1,17 @@
+#[0] = sent to client
+#[1] = sent to server
+returndata = [b'', b'']
+
+def setReturnData(S2C, C2S):
+    if S2C != None:
+        returndata[0] = S2C
+    if C2S != None:
+        returndata[1] = C2S
+    return returndata
+
+def getReturnData():
+    return returndata
+
 class Packet(object):
     def __init__(self, packet_id, length):
         self.id = packet_id
@@ -6,20 +20,13 @@ class Packet(object):
 class Plugin(object):
     def __init__(self):
         self.name = 'Unknown Plugin'
+        self.description = ''
         self.S2Ccallbacks = {}
         self.C2Scallbacks = {}
+        self.commands = {}
 
     def onLoad(self):
         print(f'Plugin {self.name} loaded.')
-
-class Command(object):
-    def __init__(self):
-        self.name = 'invalid' # Command names should be lower case and not contain any spaces
-        self.description = 'Invalid command'
-        self.help = f'{self.name} - {self.description}'
-    
-    def call(self, returndata, args):
-        return returndata
 
 C2S = {
     # Vanilla

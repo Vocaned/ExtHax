@@ -1,13 +1,14 @@
-from Constants import Command
+from Constants import Plugin, setReturnData
 
-
-class ExampleCommand(Command):
+class ExampleCommand(Plugin):
     def __init__(self):
         super().__init__()
-        self.name = 'testcommand'
+        self.name = 'testcom'
         self.description = 'Test Command'
-        self.help = f'{self.name} - {self.description}'
+        self.commands = {
+            'testcommand': self.testCmd
+        }
 
-    def call(self, returndata, args):
+    def testCmd(self, args):
         print(f'Test command: ARGS {args}')
-        return [returndata[0], b'']
+        setReturnData(None, b'')
