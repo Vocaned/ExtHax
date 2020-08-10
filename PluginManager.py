@@ -1,6 +1,6 @@
 import struct
 from config import commandPrefix
-from Constants import loadedPlugins
+from Constants import loadedPlugins, Plugin
 
 def loadPlugin(plugin: str):
     if plugin in loadedPlugins:
@@ -33,6 +33,8 @@ def init(data):
     _, _, _, _, padding = struct.unpack('cc64s64sc', data)
     if padding == b'\x42': # CPE magic number
         loadPlugin('CPE')
+    
+    loadPlugin('PluginList')
 
 def commandCall(data):
     _, type, msg = struct.unpack('cc64s', data)
@@ -45,7 +47,7 @@ def commandCall(data):
  
     cmd = msg.lstrip(commandPrefix).split(' ')[0]
 
-    for pluginClas in loadedPlugins:
+    for pluginClass in loadedPlugins:
         pluginClass = loadedPlugins[pluginClass]
-        if cmd in pluginClas.commands:
-            return pluginClas.commands[cmd](msg.split(' ')[1:])
+        if cmd in pluginClass.commands:
+            return pluginClass.commands[cmd](msg.split(' ')[1:])

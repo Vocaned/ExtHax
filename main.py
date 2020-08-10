@@ -79,6 +79,7 @@ def proxy(username, serverIP, mppass):
             except SystemExit:
                 exit()
             except Exception as e:
+                # raise e # debug 
                 try:
                     if S2C:
                         sprint(Status.WARN, "[S->C] " + str(e))

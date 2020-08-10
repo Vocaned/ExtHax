@@ -9,11 +9,40 @@ def setReturnData(S2C, C2S):
         returndata[1] = C2S
     return returndata
 
+def appendReturnData(S2C, C2S):
+    if S2C != None:
+        returndata[0] += S2C
+    if C2S != None:
+        returndata[1] += C2S
+    return returndata
+
 def getReturnData():
     return returndata
 
 #List of plugin classes currently loaded
 loadedPlugins = {}
+
+def sendMessage(string, S2C: bool):
+    # TODO: Check that client and server support LongerMessages CPE
+    chunks = []
+    if type(string) == str:
+        string = string.encode(encoding="ascii", errors="ignore")
+    for chunk in [string[i:i+64] for i in range(0, len(string), 64)]:
+        if len(chunk) < 64:
+            chunk += b'\x20' * (64 - len(chunk))
+        chunks.append(chunk)
+    
+    for i in range(len(chunks)):
+        if i < len(chunks)-1:
+            if S2C:
+                appendReturnData(b'\x0d\x01' + chunk, None)
+            else:
+                appendReturnData(None, b'\x0d\x01' + chunk)
+        else:
+            if S2C:
+                appendReturnData(b'\x0d\x00' + chunk, None)
+            else:
+                appendReturnData(None, b'\x0d\x00' + chunk)
 
 class Packet(object):
     def __init__(self, packet_id, length):
