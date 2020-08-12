@@ -1,4 +1,4 @@
-from Constants import loadedPlugins, Plugin, sendMessage, setReturnData, loadPlugin
+from Utils import loadedPlugins, Plugin, sendMessage, setReturnData, loadPlugin
 import glob
 from os import sys
 from importlib import reload
@@ -35,7 +35,7 @@ class plugin(Plugin):
         sendMessage('&eLoaded plugins:', True)
         for plugin in loadedPlugins:
             sendMessage(f"&a - {plugin}", True)
-        
+
         sendMessage('&eUnloaded plugins:', True)
         for file in glob.glob('plugins/*.py'):
             file = file.replace('plugins/', '').rsplit('.', 1)[0]

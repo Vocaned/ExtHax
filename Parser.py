@@ -1,6 +1,5 @@
 import struct
-import Utils
-from Constants import S2C, C2S, setReturnData, getReturnData
+from Utils import S2C, C2S, setReturnData, getReturnData
 from PluginManager import callback
 
 def getC2SPacket(data):

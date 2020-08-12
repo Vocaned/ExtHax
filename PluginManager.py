@@ -1,15 +1,15 @@
 import struct
 from config import commandPrefix, initPlugins
-from Constants import loadedPlugins, loadPlugin, Plugin, setReturnData, sendMessage
+from Utils import loadedPlugins, loadPlugin, Plugin, setReturnData, sendMessage
 
 def init(data):
     loadPlugin('Plugins')
-    
+
     # Determine if client supports CPE
     # TODO: Currently assumes the server supports CPE
     _, _, _, _, padding = struct.unpack('cc64s64sc', data)
     if padding == b'\x42': # CPE magic number
-        loadPlugin('CPE')   
+        loadPlugin('CPE')
 
     for plugin in initPlugins:
         loadPlugin(plugin)
@@ -41,7 +41,7 @@ def commandCall(data):
         return
 
     setReturnData(None, b'')
- 
+
     cmd = msg.lstrip(commandPrefix).split(' ')[0].lower()
 
     for pluginClass in loadedPlugins:

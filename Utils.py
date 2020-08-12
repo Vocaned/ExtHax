@@ -1,4 +1,145 @@
-from getpass import getpass
+#[0] = sent to client
+#[1] = sent to server
+returndata = [b'', b'']
+
+def setReturnData(S2C, C2S):
+    if S2C != None:
+        returndata[0] = S2C
+    if C2S != None:
+        returndata[1] = C2S
+    return returndata
+
+def appendReturnData(S2C, C2S):
+    if S2C != None:
+        returndata[0] += S2C
+    if C2S != None:
+        returndata[1] += C2S
+    return returndata
+
+def getReturnData():
+    return returndata
+
+#List of plugin classes currently loaded
+loadedPlugins = {}
+
+def loadPlugin(plugin: str):
+    if plugin in loadedPlugins:
+        print(f'Plugin {plugin} is already loaded.')
+        return
+    mod = __import__(f'plugins.{plugin}', fromlist=['plugin'])
+    pluginClass = getattr(mod, 'plugin')
+    loadedPlugins[plugin] = pluginClass()
+
+def sendMessage(string, S2C: bool):
+    # TODO: Check that client and server support LongerMessages CPE
+    chunks = []
+    if type(string) == str:
+        string = string.encode(encoding="ascii", errors="ignore")
+    for chunk in [string[i:i+64] for i in range(0, len(string), 64)]:
+        if len(chunk) < 64:
+            chunk += b'\x20' * (64 - len(chunk))
+        chunks.append(chunk)
+
+    for i in range(len(chunks)):
+        if i < len(chunks)-1:
+            if S2C:
+                appendReturnData(b'\x0d\x01' + chunk, None)
+            else:
+                appendReturnData(None, b'\x0d\x01' + chunk)
+        else:
+            if S2C:
+                appendReturnData(b'\x0d\x00' + chunk, None)
+            else:
+                appendReturnData(None, b'\x0d\x00' + chunk)
+
+class Packet(object):
+    def __init__(self, packet_id, length):
+        self.id = packet_id
+        self.length = length
+
+class Plugin(object):
+    #from Constants import sendMessage
+    def __init__(self):
+        self.name = 'Unknown Plugin'
+        self.description = ''
+        self.S2Ccallbacks = {}
+        self.C2Scallbacks = {}
+        self.commands = {}
+
+    def onLoad(self):
+        sendMessage(f'&7Plugin {self.name} loaded.', True)
+
+C2S = {
+    # Vanilla
+    'playerId' :              Packet(b'\x00', 131),
+    'setBlock' :              Packet(b'\x05', 9),
+    'posOri' :                Packet(b'\x08', 10),
+    'message' :               Packet(b'\x0D', 66),
+
+    # CPE
+    'ExtInfo' :               Packet(b'\x10', 67),
+    'ExtEntry' :              Packet(b'\x11', 69),
+    'CustomBlockSupportLvl' : Packet(b'\x13', 2),
+    'PlayerClicked' :         Packet(b'\x22', 15),
+    'TwoWayPing' :            Packet(b'\x2B', 4)
+}
+
+S2C = {
+    # Vanilla
+    'serverId' :              Packet(b'\x00', 131),
+    'ping' :                  Packet(b'\x01', 1),
+    'lvlInit' :               Packet(b'\x02', 1),
+    'lvlChunk' :              Packet(b'\x03', 1028),
+    'lvlFinal' :              Packet(b'\x04', 7),
+    'setBlock' :              Packet(b'\x06', 8),
+    'spawnPlayer' :           Packet(b'\x07', 74),
+    'posOri' :                Packet(b'\x08', 10),
+    'posOriUpdate' :          Packet(b'\x09', 7),
+    'posUpdate' :             Packet(b'\x0A', 5),
+    'oriUpdate' :             Packet(b'\x0B', 4),
+    'despawn' :               Packet(b'\x0C', 2),
+    'message' :               Packet(b'\x0D', 66),
+    'disconnect' :            Packet(b'\x0E', 65),
+    'updateUser' :            Packet(b'\x0F', 2),
+
+    # CPE
+    'ExtInfo' :               Packet(b'\x10', 67),
+    'ExtEntry' :              Packet(b'\x11', 69),
+    'ClickDistance' :         Packet(b'\x12', 3),
+    'CustomBlockSupportLvl' : Packet(b'\x13', 2),
+    'HeldBlock' :             Packet(b'\x14', 3),
+    'SetTextHotKey' :         Packet(b'\x15', 134),
+    'ExtAddPlayerName' :      Packet(b'\x16', 196),
+    'AddEntity' :             Packet(b'\x17', 130),
+    'ExtRemovePlayerName' :   Packet(b'\x18', 3),
+    'EnvSetColor' :           Packet(b'\x19', 8),
+    'MakeSelection' :         Packet(b'\x1A', 86),
+    'RemoveSelection' :       Packet(b'\x1B', 2),
+    'SetBlockPermission' :    Packet(b'\x1C', 4),
+    'ChangeModel' :           Packet(b'\x1D', 66),
+    'EnvSetMapAppearance' :   Packet(b'\x1E', 73),
+    'EnvSetWeatherType' :     Packet(b'\x1F', 2),
+    'HackControl' :           Packet(b'\x20', 8),
+    'ExtAddEntity2' :         Packet(b'\x21', 138),
+    'DefineBlock' :           Packet(b'\x23', 80),
+    'RemoveBlockDefinition' : Packet(b'\x24', 2),
+    'DefineBlockExt' :        Packet(b'\x25', 85),
+    'BulkBlockUpdate' :       Packet(b'\x26', 1282),
+    'SetTextColor' :          Packet(b'\x27', 6),
+    'SetMapEnvUrl' :          Packet(b'\x28', 65),
+    'SetMapEnvProperty' :     Packet(b'\x29', 6),
+    'SetEntityProperty' :     Packet(b'\x2A', 7),
+    'TwoWayPing' :            Packet(b'\x2B', 4),
+    'SetInventoryOrder' :     Packet(b'\x2C', 3),
+    'SetHotbar' :             Packet(b'\x2D', 3),
+    'SetSpawnpoint' :         Packet(b'\x2E', 9),
+    'SetVelocity' :           Packet(b'\x2F', 16),
+    'DefineEffect' :          Packet(b'\x30', 36),
+    'SpawnEffect' :           Packet(b'\x31', 26),
+    'DefineModel' :           Packet(b'\x32', 116),
+    'DefineModelPart' :       Packet(b'\x33', 104),
+    'UndefineModel' :         Packet(b'\x34', 2)
+}
 
 class FG:
 	black =			"\x1B[30m"
@@ -62,64 +203,14 @@ class Status:
 	ERROR = FG.red + "ERROR"
 	FATAL = BG.red + FG.black + "FATAL"
 
-def cursor(direction, amount, clear):
-	"""Moves the cursor in terminal"""
-	amount = str(amount)
-	if direction == "up" or direction == "u":
-		print("\x1B["+amount+"A")
-	elif direction == "down" or direction == "d":
-		print("\x1B["+amount+"B")
-	elif direction == "right" or direction == "r":
-		print("\x1B["+amount+"C")
-	elif direction == "left" or direction == "l":
-		print("\x1B["+amount+"D")
-	else:
-		raise ValueError("Invalid direction")
-
-	if clear:
-		print("\x1B[0J")
-
-def cprint(value):
-	"""Safely print with colors"""
-	print(value, end=Text.reset + "\n")
-
 def sprint(status, value, fullColor=False):
 	"""Print status updates"""
 	label = "[" + status + Text.reset + "] "
 
 	value = value.replace("\n", "\n        ")
-	
+
 	if fullColor:
-		cprint(label + status.split("m")[0]+"m" + value)
+		print(label + status.split("m")[0]+"m" + value, end=Text.reset + "\n")
 	else:
-		cprint(label + value)
+		print(label + value, end=Text.reset + "\n")
 
-def choose(*item):
-	"""Multiple choice selection system, returns index of answer"""
-	for i in range(len(item)):
-		cprint(FG.yellow + "[" + str(i+1) + "] " + Text.reset + item[i])
-	ans = input()
-	try:
-		return int(ans)-1
-	except:
-		return None
-
-def question(question):
-	"""Get input with style"""
-	cprint(FG.yellow + "[?] " + Text.reset + question)
-	return input(FG.yellow + "[→] " + Text.reset)
-
-def password(prompt):
-	"""Get password with style"""
-	cprint(FG.yellow + "[?] " + Text.reset + prompt)
-	return getpass(FG.yellow + "[→] " + Text.reset)
-
-def trueCol(hex):
-	if hex:
-		r, g, b = hex2RGB(hex)
-		return "\x1B[38;2;"+str(r)+";"+str(g)+";"+str(b)+"m"
-	else:
-		return Text.reset
-
-def hex2RGB(hex):
-	return tuple(int(hex.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))

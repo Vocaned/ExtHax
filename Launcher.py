@@ -1,6 +1,7 @@
 import requests
-from Utils import sprint, Status, getpass, FG
 import base64
+from getpass import getpass
+from Utils import sprint, Status
 from config import rememberMe
 s = requests.session()
 

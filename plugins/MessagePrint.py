@@ -1,5 +1,5 @@
 import struct
-from Constants import Plugin, Packet, S2C, C2S
+from Utils import Plugin, Packet, S2C, C2S
 
 class plugin(Plugin):
     def __init__(self):

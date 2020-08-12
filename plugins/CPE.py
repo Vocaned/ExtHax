@@ -1,4 +1,4 @@
-from Constants import Plugin, Packet, S2C, C2S
+from Utils import Plugin, Packet, S2C, C2S
 import struct
 
 class plugin(Plugin):

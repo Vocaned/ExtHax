@@ -4,8 +4,8 @@ import subprocess
 import Parser
 import Launcher
 import time
-from Utils import sprint, Status
 from config import ccPath, localIP
+from Utils import sprint, Status
 tries = 0
 
 def proxy(username, serverIP, mppass):
@@ -55,7 +55,7 @@ def proxy(username, serverIP, mppass):
                 packet = Parser.getS2CPacket(packetID)
             else:
                 packet = Parser.getC2SPacket(packetID)
-            
+
             if not packet:
                 sprint(Status.FATAL, f'Invalid packet {packetID.hex()}.. fuck.', fullColor=True)
                 exit()
@@ -79,7 +79,7 @@ def proxy(username, serverIP, mppass):
             except SystemExit:
                 exit()
             except Exception as e:
-                # raise e # debug 
+                # raise e # debug
                 try:
                     if S2C:
                         sprint(Status.WARN, "[S->C] " + str(e))

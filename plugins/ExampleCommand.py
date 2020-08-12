@@ -1,4 +1,4 @@
-from Constants import Plugin, setReturnData
+from Utils import Plugin, setReturnData
 
 class plugin(Plugin):
     def __init__(self):
