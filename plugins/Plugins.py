@@ -46,7 +46,10 @@ class plugin(Plugin):
         if len(args) > 1:
             sendMessage('&cToo many arguments.', True)
         else:
-            loadPlugin(args[0])
+            if f'plugins/{args[0]}.py' not in glob.glob('plugins/*.py'):
+                sendMessage('&cInvalid plugin name. (filenames are case sensitive)', True)
+            else:
+                loadPlugin(args[0])
 
     def unloadPluginCmd(self, args):
         if len(args) > 1:
