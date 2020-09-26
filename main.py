@@ -97,3 +97,4 @@ if __name__ == '__main__':
     username = Launcher.login()
     server = Launcher.serverlist()
     proxy(username, (server["ip"], server["port"]), server['mppass'])
+    #proxy(username, ('127.0.0.1', 25565), 'asd')

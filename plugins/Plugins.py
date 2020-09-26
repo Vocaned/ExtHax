@@ -66,6 +66,7 @@ class plugin(Plugin):
         elif args[0] not in loadedPlugins:
             sendMessage('&cPlugin not loaded.', True)
         else:
-            # TODO: Reload doesn't re-initialize the class. Not sure if that should be done
             reload(sys.modules[f'plugins.{args[0]}'])
+            del loadedPlugins[args[0]]
+            loadPlugin(args[0])
             sendMessage(f'&7Plugin {args[0]} reloaded.', True)
