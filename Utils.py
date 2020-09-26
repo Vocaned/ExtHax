@@ -1,15 +1,17 @@
+import typing
+
 #[0] = sent to client
 #[1] = sent to server
 returndata = [b'', b'']
 
-def setReturnData(S2C, C2S):
+def setReturnData(S2C: typing.Union[None, bytes], C2S: typing.Union[None, bytes]):
     if S2C != None:
         returndata[0] = S2C
     if C2S != None:
         returndata[1] = C2S
     return returndata
 
-def appendReturnData(S2C, C2S):
+def appendReturnData(S2C: typing.Union[None, bytes], C2S: typing.Union[None, bytes]):
     if S2C != None:
         returndata[0] += S2C
     if C2S != None:
@@ -30,8 +32,9 @@ def loadPlugin(plugin: str):
     pluginClass = getattr(mod, 'plugin')
     loadedPlugins[plugin] = pluginClass()
 
-def sendMessage(string, S2C: bool):
+def sendMessage(string: typing.Union[str, bytes], S2C: bool):
     # TODO: Check that client and server support LongerMessages CPE
+    # TODO: Rewrite to put > in front of long S2C messages
     chunks = []
     if type(string) == str:
         string = string.encode(encoding="ascii", errors="ignore")
@@ -43,14 +46,17 @@ def sendMessage(string, S2C: bool):
     for i in range(len(chunks)):
         if i < len(chunks)-1:
             if S2C:
-                appendReturnData(b'\x0d\x01' + chunk, None)
+                appendReturnData(b'\x0d\x00' + chunks[i], None)
             else:
-                appendReturnData(None, b'\x0d\x01' + chunk)
+                appendReturnData(None, b'\x0d\x01' + chunks[i])
         else:
             if S2C:
-                appendReturnData(b'\x0d\x00' + chunk, None)
+                appendReturnData(b'\x0d\x00' + chunks[i], None)
             else:
-                appendReturnData(None, b'\x0d\x00' + chunk)
+                appendReturnData(None, b'\x0d\x00' + chunks[i])
+
+def stringToStr(string: bytes) -> str:
+    return string.decode(encoding="ascii", errors="ignore").rstrip(' ')
 
 class Packet(object):
     def __init__(self, packet_id, length):
@@ -203,7 +209,7 @@ class Status:
 	ERROR = FG.red + "ERROR"
 	FATAL = BG.red + FG.black + "FATAL"
 
-def sprint(status, value, fullColor=False):
+def sprint(status: str, value: str, fullColor=False):
 	"""Print status updates"""
 	label = "[" + status + Text.reset + "] "
 
