@@ -3,6 +3,8 @@ import dearpygui.simple as sdpg
 import requests
 import base64
 import config
+
+#region Misc
 s = requests.session()
 
 def get(uri):
@@ -23,12 +25,14 @@ loginerrors = {
     'verification': 'User is not verified! Check your email',
     'login_code': '2FA authorization required. Check your email and log in using the ClassiCube launcher'
 }
+#endregion
 
+#region Async functions
 def try_login(sender, data):
     pre = get('https://www.classicube.net/api/login')
     token = pre['token']
     dpg.log_debug(f'Logging in with token {token}')
-    reallogin = post('https://www.classicube.net/api/login', data={'username': dpg.get_value('LoginUsername'), 'password': dpg.get_value('LoginPassword'), 'token': token})
+    reallogin = post('https://www.classicube.net/api/login', data={'username': data[0], 'password': data[1], 'token': token})
     if reallogin['errors']:
         message = ', '.join(reallogin['errors'])
         for key in loginerrors.keys():
@@ -60,7 +64,9 @@ def join_server(sender, data):
 
     dpg.log_info(f"Joining server {data['name']} ({data['ip']}:{data['port']})")
     dpg.log_debug(f"mppass {data['mppass']}")
+#endregion
 
+#region Async handlers
 def login_handler(sender, data):
     global loggedin
     dpg.log_debug(data)
@@ -88,16 +94,20 @@ def login_handler(sender, data):
 
 def serverlist_handler(sender, data):
     dpg.set_table_data('ServerTable', data)
+#endregion
 
+#region GUI callbacks
 def login_callback(sender, data):
     dpg.set_item_color('LoginStatus', 0, [255, 255, 255])
     sdpg.set_item_label('LoginStatus', 'Logging In..')
     sdpg.show_item('LoginStatus')
-    dpg.run_async_function(try_login, None, return_handler=login_handler)
+
+    asyncdata = (dpg.get_value('LoginUsername'), dpg.get_value('LoginPassword'))
+    dpg.run_async_function(try_login, asyncdata, return_handler=login_handler)
 
 def serverlist_refresh_callback(sender, data):
     if not loggedin:
-        dpg.set_table_data('ServerTable', [['NOT LOGGED IN', 'NOT LOGGED IN', 'NOT LOGGED IN'],])
+        dpg.set_table_data('ServerTable', [[],])
     else:
         dpg.run_async_function(get_serverlist, None, return_handler=serverlist_handler)
 
@@ -137,3 +147,4 @@ def serverlist_table_callback(sender, data):
 
     for column in range(columns):
         dpg.set_table_selection('ServerTable', row, column, True)
+#endregion
