@@ -1,8 +1,16 @@
 import json
 import os
 import typing
+import base64
 
 cache = None
+
+def encryptValue(key: str, value: str) -> None:
+    setValue(key, base64.b85encode(value.encode()).decode())
+
+def decryptValue(key: str) -> str:
+    val = getValue(key)
+    return base64.b85decode(val.encode()).decode()
 
 def setValue(key: str, value: str) -> None:
     config = getConfig()

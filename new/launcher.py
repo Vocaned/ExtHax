@@ -1,7 +1,6 @@
 import dearpygui.core as dpg
 import dearpygui.simple as sdpg
 import requests
-import base64
 import config
 
 #region Misc
@@ -57,6 +56,8 @@ def get_serverlist(sender, data):
     return tabledata
 
 def join_server(sender, data):
+    if not data:
+        return
     if not 'mppass' in data:
         dpg.log_info(f"Joining server {data['name']}")
         dpg.log_error('No mppass in server list')
@@ -82,7 +83,7 @@ def login_handler(sender, data):
         loggedin = True
         if dpg.get_value('LoginRememberMe'):
             config.setValue('username', data[1])
-            config.setValue('password', base64.b85encode(dpg.get_value('LoginPassword').encode()).decode())
+            config.encryptValue('password', dpg.get_value('LoginPassword'))
         else:
             config.setValue('username', None)
             config.setValue('password', None)
@@ -112,6 +113,8 @@ def serverlist_refresh_callback(sender, data):
         dpg.run_async_function(get_serverlist, None, return_handler=serverlist_handler)
 
 def serverlist_join_callback(sender, data):
+    if not serverList:
+        return
     selections = dpg.get_table_selections('ServerTable')
     if not selections:
         return
@@ -138,7 +141,8 @@ def serverlist_table_callback(sender, data):
     if row == None:
         if lastRow != None:
             row = lastRow
-            dpg.run_async_function(join_server, serverList[row])
+            if serverList:
+                dpg.run_async_function(join_server, serverList[row])
         else:
             row = 0
             lastRow = 0
